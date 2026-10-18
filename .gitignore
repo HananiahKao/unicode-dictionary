@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary/Cache
+*.tmp
+*.temp
+.cache/
+
+# Build artifacts (keep source, ignore compiled)
+dist/*.dictionary/Contents/Resources/Body.data
+dist/*.dictionary/Contents/Resources/KeyText.index
+
+# Keep XML and bundles in git for reference/documentation
+# but could be regenerated:
+# Uncomment to ignore large files:
+# dist/UnicodeDictionary.xml
+# dist/UnicodeDictionary-spike.xml
+# dist/UnicodeDictionary.dictionary/Contents/Resources/Dictionary.xml.gz
