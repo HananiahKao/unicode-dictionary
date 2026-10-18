@@ -46,13 +46,13 @@ xml: $(XML_SOURCE)
 $(XML_SOURCE): $(UCD_FILES) build/gen_dict.py build/ucd_parse.py
 	@echo "Generating dictionary XML..."
 	@mkdir -p dist
-	python3 -I build/gen_dict.py --output $(XML_SOURCE) --data-dir data
+	cd build && python3 -I gen_dict.py --output ../$(XML_SOURCE) --data-dir ../data
 	@echo "✓ XML generation complete"
 
 xml-spike:
 	@echo "Generating spike XML (first 5000 entries)..."
 	@mkdir -p dist
-	python3 -I build/gen_dict.py --output $(SPIKE_OUTPUT) --data-dir data $(SPIKE_LIMIT)
+	cd build && python3 -I gen_dict.py --output ../$(SPIKE_OUTPUT) --data-dir ../data $(SPIKE_LIMIT)
 	@echo "✓ Spike XML generation complete"
 
 dict: $(XML_SOURCE) $(CSS_SOURCE) $(INFO_PLIST)

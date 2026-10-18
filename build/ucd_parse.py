@@ -69,8 +69,7 @@ class UCDParser:
         print("Parsing ScriptExtensions.txt...")
         self._parse_script_extensions()
 
-        print("Parsing DerivedName.txt...")
-        self._parse_derived_name()
+        # DerivedName.txt doesn't exist; algorithmic names are in UnicodeData.txt
 
         print("Parsing NameAliases.txt...")
         self._parse_name_aliases()
@@ -262,6 +261,8 @@ class UCDParser:
 
     def _parse_derived_name(self):
         """Parse DerivedName.txt for algorithmic names (Hangul, CJK, etc.)."""
+        # DerivedName.txt doesn't exist as a separate file; skip this
+        return
         path = self.data_dir / "DerivedName.txt"
         if not path.exists():
             return

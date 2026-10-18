@@ -9,12 +9,16 @@ Usage: python3 -I gen_dict.py [--limit N] [--output FILE]
 import sys
 import re
 import html
+import os
 from pathlib import Path
 from typing import List, Optional
 import unicodedata
 
+# Ensure we can import from build directory
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 # Run with -I flag to use unbundled standard library only
-from build.ucd_parse import UCDParser, CharacterData
+from ucd_parse import UCDParser, CharacterData
 
 
 # Unicode code points that cannot appear literally in XML

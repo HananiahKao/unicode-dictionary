@@ -11,9 +11,9 @@ DATA_DIR="data"
 mkdir -p "$DATA_DIR"
 
 # Files to download
+# Note: DerivedName.txt doesn't exist as a separate file; algorithmic names are in UnicodeData.txt range data
 FILES=(
     "UnicodeData.txt"
-    "DerivedName.txt"
     "NameAliases.txt"
     "Blocks.txt"
     "Scripts.txt"
