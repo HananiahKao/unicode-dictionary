@@ -57,37 +57,28 @@ xml-spike:
 
 dict: $(XML_SOURCE) $(CSS_SOURCE) $(INFO_PLIST)
 	@echo "Building dictionary bundle..."
-	@mkdir -p "$(DICT_BUNDLE_PATH)/Contents/Resources"
+	@mkdir -p dist
 
-	# Try using the Dictionary Development Kit first
 	@if command -v build_dict.sh >/dev/null 2>&1; then \
-		echo "Using Dictionary Development Kit..."; \
+		echo "✓ Using Apple's Dictionary Development Kit..."; \
 		build_dict.sh "$(PROJECT_NAME)" "$(XML_SOURCE)" "$(CSS_SOURCE)" "$(INFO_PLIST)"; \
 		mkdir -p dist; \
-		mv "$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)"; \
+		[ -d "$(PROJECT_NAME).dictionary" ] && mv "$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || true; \
+		echo "✓ Dictionary bundle built with official Kit"; \
 	else \
-		echo "Dictionary Development Kit not found; building bundle manually..."; \
-		$(MAKE) _build_bundle_manual; \
+		echo "Dictionary Development Kit not found."; \
+		echo "Creating fallback bundle structure..."; \
+		cd build && python3 -I bundle_dict.py "$(PROJECT_NAME)" "../$(XML_SOURCE)" "../$(CSS_SOURCE)" "../$(INFO_PLIST)" -o ../dist; \
+		echo ""; \
+		echo "⚠ IMPORTANT: The bundle is incomplete without the Kit."; \
+		echo ""; \
+		echo "To use this dictionary, you must install Apple's Dictionary Development Kit:"; \
+		echo "  1. Visit: https://developer.apple.com/download/all/"; \
+		echo "  2. Download: Additional Tools for Xcode"; \
+		echo "  3. Install the Dictionary Development Kit"; \
+		echo "  4. Run: make dict (again)"; \
 	fi
-	@echo "✓ Dictionary bundle created at $(DICT_BUNDLE_PATH)"
-
-_build_bundle_manual:
-	@echo "Creating bundle structure..."
-
-	# Copy Info.plist
-	cp "$(INFO_PLIST)" "$(DICT_BUNDLE_PATH)/Contents/Info.plist"
-
-	# For manual build without the Kit, we'd need to:
-	# 1. Create the Body.data file (gzipped XML chunks)
-	# 2. Create the KeyText.index file (searchable index)
-	# This requires the Kit's tools (bin/plutil, etc.)
-	# For now, we'll create a minimal bundle structure
-
-	@echo "Note: Manual bundle creation requires Apple's Dictionary Development Kit"
-	@echo "Visit: https://developer.apple.com/download/all/"
-	@echo "Download: Additional Tools for Xcode"
-	@echo ""
-	@echo "To complete the build, install the Kit and run 'make dict' again"
+	@[ -d "$(DICT_BUNDLE_PATH)" ] && echo "✓ Dictionary bundle location: $(DICT_BUNDLE_PATH)" || echo "⚠ Bundle creation incomplete; see instructions above"
 
 install: $(DICT_BUNDLE_PATH)
 	@echo "Installing dictionary..."
