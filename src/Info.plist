@@ -2,57 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- Bundle identification -->
-    <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
-
-    <key>CFBundleDisplayName</key>
-    <string>Unicode Character Database</string>
-
-    <key>CFBundleExecutable</key>
-    <string>Dictionary</string>
-
-    <key>CFBundleIdentifier</key>
-    <string>com.local.unicode-dictionary</string>
-
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-
-    <key>CFBundleName</key>
-    <string>Unicode Character Database</string>
-
-    <key>CFBundlePackageType</key>
-    <string>dct</string>
-
-    <key>CFBundleShortVersionString</key>
-    <string>17.0</string>
-
-    <key>CFBundleVersion</key>
-    <string>1.0</string>
-
-    <!-- Dictionary-specific settings -->
-    <key>DCSDictionaryAttributionHTMLTemplate</key>
-    <string>&lt;p&gt;&lt;a href="https://www.unicode.org"&gt;The Unicode Consortium&lt;/a&gt;&lt;/p&gt;</string>
-
-    <key>DCSDictionaryCopyright</key>
-    <string>Unicode data © The Unicode Consortium. Licensed under the Unicode License Agreement.</string>
-
-    <key>DCSDictionaryDefaultLanguage</key>
-    <string>en</string>
-
-    <key>DCSDictionaryLanguages</key>
-    <array>
-        <string>en</string>
-    </array>
-
-    <key>DCSDictionaryManufacturerName</key>
-    <string>The Unicode Consortium / Local Build</string>
-
-    <key>DCSDictionarySourceLanguage</key>
-    <string>en</string>
-
-    <!-- Styling -->
-    <key>DCSDictionaryXSLStyleVersion</key>
-    <integer>1</integer>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.local.unicode-dictionary</string>
+	<key>CFBundleName</key>
+	<string>Unicode Character Database</string>
+	<key>CFBundleShortVersionString</key>
+	<string>17.0</string>
+	<key>DCSDictionaryCopyright</key>
+	<string>Unicode data © The Unicode Consortium. Licensed under the Unicode License Agreement.</string>
+	<key>DCSDictionaryManufacturerName</key>
+	<string>The Unicode Consortium / Local Build</string>
+	<key>DCSDictionaryUseSystemAppearance</key>
+	<true/>
 </dict>
 </plist>

@@ -322,42 +322,13 @@ def generate_dictionary(characters: dict, limit: Optional[int] = None, output_fi
         '',
     ]
 
-    # Front matter / about page
-    xml_lines.extend([
-        '  <d:entry id="About" d:title="About Unicode Dictionary">',
-        '    <d:index d:value="about" d:title="About"/>',
-        '    <div>',
-        '      <h1>Unicode Character Database Dictionary</h1>',
-        '      <p>Comprehensive reference for all Unicode 17.0 characters.</p>',
-        '      <h2>Features</h2>',
-        '      <ul>',
-        '        <li>Official character names</li>',
-        '        <li>Code points (U+XXXX and numeric)</li>',
-        '        <li>General category, script, block</li>',
-        '        <li>Age (Unicode version introduced)</li>',
-        '        <li>Combining class, bidi properties</li>',
-        '        <li>Decomposition, case mappings</li>',
-        '        <li>Numeric values, East Asian width</li>',
-        '        <li>Boolean properties (Alphabetic, Emoji, Math, etc.)</li>',
-        '      </ul>',
-        '      <h2>Usage</h2>',
-        '      <p>Select any character and use Look Up (Ctrl+Cmd+D) to search this dictionary.</p>',
-        '      <h2>Property Legend</h2>',
-        '      <dl>',
-        '        <dt>Category</dt><dd>General character classification</dd>',
-        '        <dt>Script</dt><dd>Writing system (Latin, Greek, Han, etc.)</dd>',
-        '        <dt>Block</dt><dd>Unicode block assignment</dd>',
-        '        <dt>Age</dt><dd>Unicode version when character was introduced</dd>',
-        '        <dt>Combining Class</dt><dd>Canonical combining class (0 if not combining)</dd>',
-        '        <dt>Bidi Class</dt><dd>Bidirectional text properties</dd>',
-        '        <dt>Numeric Value</dt><dd>Numeric value if character represents a number</dd>',
-        '        <dt>East Asian Width</dt><dd>Display width in East Asian context</dd>',
-        '      </dl>',
-        '      <p><small>Data from Unicode Standard 17.0. License: <a href="https://www.unicode.org/license.html">Unicode License</a></small></p>',
-        '    </div>',
-        '  </d:entry>',
-        '',
-    ])
+    # NOTE: A custom "About" front-matter entry was tried here but was found to
+    # corrupt the Dictionary Development Kit's body-offset indexing for every
+    # entry that followed it, causing them to fail to render in Dictionary.app's
+    # main browsing window (while the Look Up popup, a different code path,
+    # still worked). Root cause not fully isolated (links? <dl>? first-entry
+    # position?); removing it entirely resolved the issue, so it's left out.
+    # See IMPLEMENTATION.md for details if revisiting this.
 
     # Character entries
     for i, cp in enumerate(assigned):

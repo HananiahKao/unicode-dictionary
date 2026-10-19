@@ -4,7 +4,21 @@
 PROJECT_NAME := UnicodeDictionary
 DICT_BUNDLE := $(PROJECT_NAME).dictionary
 DICT_BUNDLE_PATH := dist/$(DICT_BUNDLE)
-DICT_BUILD_TOOL_DIR ?= /usr/local/Dictionary\ Development\ Kit
+
+# Dictionary Development Kit location (check multiple paths)
+# Note: Using variable without backslash for conditional, with backslash for shell use
+DICT_BUILD_TOOL_DIR_UNESCAPED ?= /usr/local/Dictionary Development Kit
+DICT_KIT_MOUNTED := /Volumes/Additional Tools/Utilities/Dictionary Development Kit
+
+ifeq ($(wildcard $(DICT_BUILD_TOOL_DIR_UNESCAPED)/bin/build_dict.sh),)
+  ifeq ($(wildcard $(DICT_KIT_MOUNTED)/bin/build_dict.sh),)
+    DICT_BUILD_TOOL_DIR := /usr/local/Dictionary\ Development\ Kit
+  else
+    DICT_BUILD_TOOL_DIR := $(DICT_KIT_MOUNTED)
+  endif
+else
+  DICT_BUILD_TOOL_DIR := $(DICT_BUILD_TOOL_DIR_UNESCAPED)
+endif
 
 # Files
 UCD_FILES := data/UnicodeData.txt data/Blocks.txt data/Scripts.txt
@@ -59,9 +73,28 @@ dict: $(XML_SOURCE) $(CSS_SOURCE) $(INFO_PLIST)
 	@echo "Building dictionary bundle..."
 	@mkdir -p dist
 
-	@if command -v build_dict.sh >/dev/null 2>&1; then \
-		echo "✓ Using Apple's Dictionary Development Kit..."; \
-		build_dict.sh "$(PROJECT_NAME)" "$(XML_SOURCE)" "$(CSS_SOURCE)" "$(INFO_PLIST)"; \
+	@if [ -f "$$HOME/Dictionary Development Kit/bin/build_dict.sh" ]; then \
+		echo "✓ Found Dictionary Development Kit in home directory"; \
+		echo "Building with official Kit..."; \
+		"$$HOME/Dictionary Development Kit/bin/build_dict.sh" "$(PROJECT_NAME)" "$(XML_SOURCE)" "$(CSS_SOURCE)" "$(INFO_PLIST)"; \
+		mkdir -p dist; \
+		[ -d "$(PROJECT_NAME).dictionary" ] && mv "$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || true; \
+		echo "✓ Dictionary bundle built with official Kit"; \
+	elif [ -f "/usr/local/Dictionary Development Kit/bin/build_dict.sh" ]; then \
+		echo "✓ Found Dictionary Development Kit at /usr/local"; \
+		echo "Building with official Kit..."; \
+		"/usr/local/Dictionary Development Kit/bin/build_dict.sh" "$(PROJECT_NAME)" "$(XML_SOURCE)" "$(CSS_SOURCE)" "$(INFO_PLIST)"; \
+		mkdir -p dist; \
+		[ -d "$(PROJECT_NAME).dictionary" ] && mv "$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || true; \
+		echo "✓ Dictionary bundle built with official Kit"; \
+	elif [ -f "/Volumes/Additional Tools/Utilities/Dictionary Development Kit/bin/build_dict.sh" ]; then \
+		echo "⚠ Found Kit on read-only mounted volume (copy to ~/Dictionary Development Kit first)"; \
+		mkdir -p ~/Dictionary\ Development\ Kit; \
+		cp -r "/Volumes/Additional Tools/Utilities/Dictionary Development Kit"/* ~/Dictionary\ Development\ Kit/ 2>/dev/null; \
+		find ~/Dictionary\ Development\ Kit/bin -type f -exec xattr -d com.apple.quarantine {} \; 2>/dev/null; \
+		chmod +x ~/Dictionary\ Development\ Kit/bin/*.sh; \
+		echo "  Installing from mounted volume..."; \
+		"$$HOME/Dictionary Development Kit/bin/build_dict.sh" "$(PROJECT_NAME)" "$(XML_SOURCE)" "$(CSS_SOURCE)" "$(INFO_PLIST)"; \
 		mkdir -p dist; \
 		[ -d "$(PROJECT_NAME).dictionary" ] && mv "$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || true; \
 		echo "✓ Dictionary bundle built with official Kit"; \
@@ -72,11 +105,9 @@ dict: $(XML_SOURCE) $(CSS_SOURCE) $(INFO_PLIST)
 		echo ""; \
 		echo "⚠ IMPORTANT: The bundle is incomplete without the Kit."; \
 		echo ""; \
-		echo "To use this dictionary, you must install Apple's Dictionary Development Kit:"; \
-		echo "  1. Visit: https://developer.apple.com/download/all/"; \
-		echo "  2. Download: Additional Tools for Xcode"; \
-		echo "  3. Install the Dictionary Development Kit"; \
-		echo "  4. Run: make dict (again)"; \
+		echo "To use this dictionary with the Kit:"; \
+		echo "  1. Copy Kit from mounted volume: cp -r '/Volumes/Additional Tools/Utilities/Dictionary Development Kit' ~/"; \
+		echo "  2. Run: make dict (again)"; \
 	fi
 	@[ -d "$(DICT_BUNDLE_PATH)" ] && echo "✓ Dictionary bundle location: $(DICT_BUNDLE_PATH)" || echo "⚠ Bundle creation incomplete; see instructions above"
 
