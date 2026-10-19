@@ -21,11 +21,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ucd_parse import UCDParser, CharacterData
 
 
-# Unicode code points that cannot appear literally in XML
+# Unicode code points that cannot appear literally in our output.
+# NOTE: XML 1.0 technically permits raw tab (0x09), LF (0x0A), and CR (0x0D)
+# in content. But the Dictionary Development Kit's build pipeline processes
+# the source XML with line-based tools (sed/awk-style scripts), and the XML
+# spec itself requires attribute-value whitespace normalization for these
+# three characters. A raw CR (as in CARRIAGE RETURN's own literal-character
+# index value) desyncs that line-based tooling and corrupts the build for
+# every entry that follows in the file. So treat them the same as the other
+# C0 controls: never emit them raw, always via control-picture glyph or
+# numeric character reference.
 XML_UNSAFE_CHARS = {
-    # C0 controls (0x00-0x1F) except tab, LF, CR
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,  # no tab (0x09)
-    0x0B, 0x0C,  # no LF (0x0A), no CR (0x0D)
+    # C0 controls (0x00-0x1F), including tab, LF, CR
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
     0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
     # C1 controls (0x7F-0x9F)
     0x7F,

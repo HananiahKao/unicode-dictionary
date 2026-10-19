@@ -45,6 +45,39 @@ The project converts text-based Unicode data into an Apple Dictionary:
 2. **Unihan properties partial** – Downloaded but not yet integrated (optional)
 3. **Emoji ZWJ sequences** – Not fully supported; Look Up uses first code point
 4. **No per-character pronunciation** – Would require external data source
+5. **Hangul syllables (~11,172) and large CJK ideograph ranges are missing entries** –
+   `UnicodeData.txt` uses `<..., First>`/`<..., Last>` range markers for these blocks
+   instead of per-codepoint lines, and `ucd_parse.py` does not yet implement Unicode's
+   algorithmic naming (e.g. the Hangul Syllable Name algorithm) to expand them. Also
+   observed: `漢` (U+6F22) resolves via `DCSCopyTextDefinition` to the wrong,
+   compatibility-duplicate codepoint (U+FA47) — a glyph-collision bug to fix alongside this.
+
+### Known Apple/macOS Dictionary.app bug (confirmed, not a bug in this project)
+**Symptom:** with only ONE dictionary enabled in Dictionary.app → Settings → Dictionaries,
+clicking a search result in the main browsing window shows a completely blank content
+pane (sidebar list populates fine; no error, no WebKit navigation/log activity at all —
+confirmed via `log stream` with zero load/navigation events on click). Enabling a SECOND
+dictionary (any dictionary, built-in or custom) alongside it makes the exact same content
+render correctly immediately.
+
+**Root cause: confirmed external to this project.** Reproduced identically, byte-for-byte,
+using Apple's own completely unmodified sample dictionary built straight from their
+Dictionary Development Kit (`project_templates/MyDictionary.xml` + `MyInfo.plist`, zero
+changes) — it also shows blank with only itself enabled, and also starts working the
+moment a second dictionary is enabled. This is a macOS Dictionary.app bug, not something
+in `gen_dict.py`, `Info.plist`, or `UnicodeDictionary.css`.
+
+A related, separately-confirmed Apple bug (developer.apple.com/forums/thread/842956):
+when an entry's content expands/reflows after initial load, Dictionary.app's native
+scroll view doesn't update to the new content size, making long/expanded entries look
+truncated or "collapsed" — also an OS-side bug with no app-side CSS/HTML fix.
+
+**Workaround (permanent, required for normal use):** always keep at least one other
+dictionary enabled alongside "Unicode Character Database" in Settings → Dictionaries.
+Do not spend further debugging time chasing "blank main window" as if it were a bug in
+this project's XML/CSS/Info.plist — it was investigated exhaustively (control characters,
+index count limits, bundle ID caching, WebKit process caches, CSS background opacity) and
+none of those were the cause; the single-vs-multiple active dictionary count is.
 
 ### Potential Improvements
 - [ ] **Unihan integration** – Add kDefinition, kTotalStrokes, etc. for CJK
