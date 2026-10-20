@@ -205,10 +205,12 @@ def generate_entry_html(char_data: CharacterData) -> str:
             html_parts.append(f'  <tr><td>Titlecase:</td><td>{html.escape(title_char)} (U+{char_data.titlecase_mapping:04X})</td></tr>')
         html_parts.append('</table>')
 
-    # Decomposition (hidden by default with d:priority="2")
+    # Decomposition. Not marked d:priority="2": that attribute is fully excluded
+    # from the Look Up popup (only visible via "Open in Dictionary"), and this
+    # data is primary content for a Unicode reference, not secondary trivia.
     if char_data.decomposition[1]:
         decomp_type, decomp_chars = char_data.decomposition
-        html_parts.append(f'<div d:priority="2"><h3>Decomposition</h3>')
+        html_parts.append(f'<div><h3>Decomposition</h3>')
         if decomp_type:
             html_parts.append(f'<p>Type: {html.escape(decomp_type)}</p>')
         html_parts.append('<p>')
@@ -223,17 +225,17 @@ def generate_entry_html(char_data: CharacterData) -> str:
         html_parts.append('</p>')
         html_parts.append('</div>')
 
-    # Additional aliases (hidden)
+    # Additional aliases
     if char_data.aliases:
-        html_parts.append(f'<div d:priority="2"><h3>Aliases</h3>')
+        html_parts.append(f'<div><h3>Aliases</h3>')
         html_parts.append('<ul>')
         for alias in char_data.aliases:
             html_parts.append(f'<li>{html.escape(alias)}</li>')
         html_parts.append('</ul></div>')
 
-    # Boolean properties (hidden)
+    # Boolean properties
     if char_data.props:
-        html_parts.append(f'<div d:priority="2"><h3>Properties</h3>')
+        html_parts.append(f'<div><h3>Properties</h3>')
         html_parts.append('<ul>')
         for prop in sorted(char_data.props):
             html_parts.append(f'<li>{html.escape(prop)}</li>')

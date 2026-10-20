@@ -79,6 +79,22 @@ this project's XML/CSS/Info.plist — it was investigated exhaustively (control 
 index count limits, bundle ID caching, WebKit process caches, CSS background opacity) and
 none of those were the cause; the single-vs-multiple active dictionary count is.
 
+**A related, narrower variant of the same bug** (confirmed 2026-10-20): when 2+ active
+dictionaries each have a matching entry for the exact same search query, the content-
+aggregation views (main window, Ctrl+Cmd+D Look Up popover, AND the search-box's live
+autocomplete dropdown) can render one dictionary's section with only an empty header —
+content omitted, not just hidden. Does not require d:priority or any markup of ours;
+reproduces with Apple's own unmodified Kit sample too. Research turned up a 2010 Mac
+Forums report of the identical symptom between two of Apple's *own* built-in dictionaries,
+on macOS 10.6 — this has been unfixed and apparently unacknowledged by Apple for 14+
+years, with no newer official build toolchain, no Info.plist/version key workaround
+(`IDXDictionaryVersion` is hardcoded to 1 by the public Kit regardless of source content —
+confirmed identical even on Apple's own unmodified sample bundle), and no known mitigation
+beyond disabling the colliding dictionary. Real shipping commercial dictionaries (e.g.
+Apple's bundled "Traditional Chinese - English") exhibit the same behavior, so this is a
+platform-wide limitation, not a blocker specific to this project. Do not re-investigate;
+document as a known limitation.
+
 ### Potential Improvements
 - [ ] **Unihan integration** – Add kDefinition, kTotalStrokes, etc. for CJK
 - [ ] **Emoji better handling** – Handle ZWJ sequences, skin tone modifiers

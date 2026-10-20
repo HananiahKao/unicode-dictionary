@@ -157,12 +157,9 @@ a:hover {
     text-decoration: underline;
 }
 
-/* Hidden content (d:priority="2") */
-div[d\:priority="2"],
-span[d\:priority="2"] {
-    opacity: 0.7;
-    font-size: 12px;
-}
+/* d:priority="2" content (Decomposition, Aliases, Properties) is hidden by
+   Dictionary Services itself behind its native "More" disclosure in Look Up;
+   no CSS override here, or we'd force it visible and suppress that control. */
 
 /* Code blocks */
 code {
