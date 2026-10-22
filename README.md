@@ -167,7 +167,7 @@ The build process attempts to use Apple's **Dictionary Development Kit** to crea
 
 ### v1.0
 
-- **Multi-character clusters** (emoji ZWJ sequences, base + combining marks): Look Up uses the first code point. The dictionary contains entries for all components.
+- **Multi-character clusters** (emoji ZWJ sequences, flag pairs, skin-tone modifiers, base + combining marks): selecting the composed glyph and invoking Look Up reports "no entries found" — there is no fallback to the base/first code point. Each component code point has its own entry, searchable individually by its name or U+code.
 - **Unihan data** (CJK extended properties): Optional download. Basic properties included.
 - **Font rendering**: Rare characters may not display if your system lacks the font. The code point and name are always shown.
 

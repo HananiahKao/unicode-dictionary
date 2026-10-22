@@ -289,6 +289,22 @@ def generate_entry_xml(char_data: CharacterData) -> str:
         alias_escaped = html.escape(alias).replace('"', '&quot;')
         indexes.append(f'    <d:index d:value="{alias_escaped}" d:title="{name}"/>')
 
+    # Index 7: Individual words from the name. Dictionary.app only prefix-
+    # matches against the start of a whole d:value -- a multi-word name is
+    # indexed as one string, so e.g. "EMOJI MODIFIER FITZPATRICK TYPE-1-2"
+    # is never found by typing "Fitz" unless "FITZPATRICK" is its own index
+    # value too. Split on non-alphanumeric boundaries; skip words under 3
+    # chars (too generic, e.g. "OF") and anything equal to the full name
+    # (already indexed above) or already emitted for this entry.
+    if char_data.name:
+        seen_words = {char_data.name, char_data.name.lower()}
+        for word in re.split(r'[^A-Za-z0-9]+', char_data.name):
+            if len(word) < 3 or word in seen_words:
+                continue
+            seen_words.add(word)
+            word_escaped = html.escape(word).replace('"', '&quot;')
+            indexes.append(f'    <d:index d:value="{word_escaped}" d:title="{name}"/>')
+
     # Generate content
     content = generate_entry_html(char_data)
     content_escaped = html.escape(content)

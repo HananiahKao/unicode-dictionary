@@ -229,7 +229,7 @@ xmllint --noout dist/UnicodeDictionary-spike.xml
 ## Known Limitations
 
 1. **Bundle not functional without Kit compilation** – The XML is ready but needs `build_dict.sh` to generate the binary format
-2. **Multi-character sequences** (ZWJ emoji, combining marks) – Look Up will look up the first code point; the dictionary contains all components
+2. **Multi-character sequences** (ZWJ emoji, flag pairs, skin-tone modifiers, combining marks) – Look Up on the composed glyph fails outright ("no entries found"); there is no fallback to the first code point. Each component code point has its own entry, searchable individually.
 3. **Unihan optional** – Full CJK extended properties require manual integration
 4. **No real-time updates** – Rebuild required for Unicode updates
 

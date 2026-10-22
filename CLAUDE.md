@@ -43,14 +43,27 @@ The project converts text-based Unicode data into an Apple Dictionary:
 ### v1.0 Limitations
 1. **Dictionary Development Kit required** – XML ready but needs Kit for compilation
 2. **Unihan properties partial** – Downloaded but not yet integrated (optional)
-3. **Emoji ZWJ sequences** – Not fully supported; Look Up uses first code point
+3. **Multi-codepoint grapheme clusters (emoji ZWJ sequences, regional-indicator flag
+   pairs, skin-tone modifier sequences, IME-composed Hangul jamo clusters) are not
+   matched at all** – confirmed empirically (2026-10-22): selecting a composed glyph
+   like 👍🏻 and invoking Look Up passes the whole multi-codepoint grapheme cluster to
+   Dictionary Services as one exact-match search term. No `d:index` in this dictionary
+   is keyed on a multi-codepoint string (every index is single-codepoint or a name/
+   alias string; see `generate_entry_xml()` in `gen_dict.py`), so the lookup fails
+   outright with "no entries found." There is **no automatic fallback to the base/
+   first code point** — that was an earlier, disproven assumption; correct it if you
+   see it elsewhere. Each component code point (e.g. the base 👍 and the Fitzpatrick
+   modifier 🏻) does have its own entry, reachable by searching its name or U+code
+   individually, just not by searching the rendered composed glyph.
 4. **No per-character pronunciation** – Would require external data source
-5. **Hangul syllables (~11,172) and large CJK ideograph ranges are missing entries** –
-   `UnicodeData.txt` uses `<..., First>`/`<..., Last>` range markers for these blocks
-   instead of per-codepoint lines, and `ucd_parse.py` does not yet implement Unicode's
-   algorithmic naming (e.g. the Hangul Syllable Name algorithm) to expand them. Also
-   observed: `漢` (U+6F22) resolves via `DCSCopyTextDefinition` to the wrong,
-   compatibility-duplicate codepoint (U+FA47) — a glyph-collision bug to fix alongside this.
+5. ~~Hangul syllables and large CJK ideograph ranges are missing entries~~ – **Fixed**
+   (commit `bd62a46`): `ucd_parse.py` now expands `<..., First>`/`<..., Last>` ranges
+   for CJK ideographs, Hangul syllables, and Tangut ideographs using Python's
+   `unicodedata.name()`, which computes names via the same algorithm the Unicode
+   Standard specifies. Surrogates and private-use ranges remain unexpanded
+   (intentional — they have no inherent name). Still open: `漢` (U+6F22) resolves via
+   `DCSCopyTextDefinition` to the wrong, compatibility-duplicate codepoint (U+FA47) —
+   a glyph-collision bug, unrelated to the range-expansion fix.
 
 ### Known Apple/macOS Dictionary.app bug (confirmed, not a bug in this project)
 **Symptom:** with only ONE dictionary enabled in Dictionary.app → Settings → Dictionaries,
@@ -97,7 +110,13 @@ document as a known limitation.
 
 ### Potential Improvements
 - [ ] **Unihan integration** – Add kDefinition, kTotalStrokes, etc. for CJK
-- [ ] **Emoji better handling** – Handle ZWJ sequences, skin tone modifiers
+- [ ] **Multi-codepoint grapheme cluster search** (ZWJ sequences, flag pairs, skin-tone
+  modifiers) – currently unsearchable as a composed glyph (see limitation #3 above).
+  Parked design question for a future session: how to index a cluster like 👍🏻 so
+  Look Up can match it — candidate directions include emitting a `d:index` keyed on
+  the literal multi-codepoint grapheme string per combination actually in use (from
+  Unicode's `emoji-sequences.txt`/`emoji-zwj-sequences.txt`, not yet ingested into
+  `data/`), or some other mechanism; not yet scoped.
 - [ ] **Cross-references** – d:anchor links to related characters (decomposition targets, case pairs)
 - [ ] **Pronunciation** – Add CLDR data for phonetic lookups (if available)
 - [ ] **Codepoint ranges** – Dedicated entries for unassigned/private-use ranges
