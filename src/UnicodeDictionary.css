@@ -37,14 +37,20 @@ body {
     max-width: 400px;
 }
 
-/* Large glyph display */
+/* Large glyph display. Explicit CJK/Hangul fonts are required here: generic
+   "sans-serif" alone resolves inconsistently for Han/Hangul/rare supplementary-
+   plane blocks (observed: the same entry rendering as blank tofu boxes on one
+   paint and correctly on the next), even when the system has a font that
+   covers the glyph just fine. Naming the font directly makes resolution
+   deterministic. */
 .glyph {
     font-size: 72px;
     text-align: center;
     line-height: 1;
     margin: 10px 0 15px;
     word-break: break-all;
-    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+    font-family: "Apple Color Emoji", "PingFang SC", "PingFang TC", "Hiragino Sans",
+        "Apple SD Gothic Neo", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
 }
 
 h1 {

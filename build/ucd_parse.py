@@ -7,6 +7,7 @@ Treat UCD data files as untrusted; run with python3 -I.
 
 import re
 import os
+import unicodedata
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple, Optional
@@ -97,11 +98,95 @@ class UCDParser:
 
         return self.characters
 
+    # <..., First>/<..., Last> range labels whose code points have real,
+    # individually-meaningful algorithmic names (CJK ideographs, Hangul
+    # syllables, Tangut) and should get one entry per code point. Ranges not
+    # listed here (surrogates, private-use planes) have no inherent name and
+    # are intentionally left unexpanded -- one entry per code point there
+    # would be meaningless and would bloat the dictionary by ~1M entries.
+    _EXPANDABLE_RANGE_PREFIXES = ("CJK Ideograph", "Hangul Syllable", "Tangut Ideograph")
+
+    def _build_character(self, codepoint: int, name: str, fields: List[str]) -> CharacterData:
+        """Build a CharacterData from a parsed UnicodeData.txt field list."""
+        category = fields[2]
+        combining_class = int(fields[3])
+        bidi_class = fields[4]
+        decomposition_str = fields[5]
+
+        numeric_value = None
+        numeric_type = ""
+        if fields[6]:  # Decimal Digit Value
+            numeric_type = "Decimal"
+            numeric_value = (int(fields[6]), 1)
+        elif fields[7]:  # Digit Value
+            numeric_type = "Digit"
+            numeric_value = (int(fields[7]), 1)
+        elif fields[8]:  # Numeric Value
+            numeric_type = "Numeric"
+            try:
+                parts = fields[8].split('/')
+                if len(parts) == 2:
+                    numeric_value = (int(parts[0]), int(parts[1]))
+                else:
+                    numeric_value = (int(parts[0]), 1)
+            except:
+                pass
+
+        decomposition = ("", [])
+        if decomposition_str:
+            parts = decomposition_str.split()
+            if parts[0].startswith('<'):
+                decomp_type = parts[0][1:-1]
+                decomp_chars = [int(p, 16) for p in parts[1:]]
+            else:
+                decomp_type = ""
+                decomp_chars = [int(p, 16) for p in parts]
+            decomposition = (decomp_type, decomp_chars)
+
+        uppercase = int(fields[12], 16) if fields[12] else None
+        lowercase = int(fields[13], 16) if fields[13] else None
+        titlecase = int(fields[14], 16) if fields[14] else None
+
+        return CharacterData(
+            codepoint=codepoint,
+            name=name,
+            aliases=[],
+            category=category,
+            combining_class=combining_class,
+            bidi_class=bidi_class,
+            bidi_mirrored=fields[9] == "Y",
+            bidi_mirror_char=None,
+            decomposition=decomposition,
+            numeric_value=numeric_value,
+            numeric_type=numeric_type,
+            uppercase_mapping=uppercase,
+            lowercase_mapping=lowercase,
+            titlecase_mapping=titlecase,
+            block="",
+            script="",
+            script_extensions=set(),
+            age=None,
+            east_asian_width="N",
+            line_break="XX",
+            props=set(),
+        )
+
     def _parse_unicode_data(self):
-        """Parse UnicodeData.txt - main character database."""
+        """Parse UnicodeData.txt - main character database.
+
+        Most lines are one code point each. Large algorithmically-named
+        blocks (CJK ideographs, Hangul syllables, Tangut) instead appear as
+        a <Label, First>/<Label, Last> pair bracketing the whole range; each
+        code point in between must be expanded individually, with its name
+        computed the same way Python's own `unicodedata` module computes it
+        (same algorithm the Unicode Standard specifies), since no per-code-
+        point line for it exists in the file at all.
+        """
         path = self.data_dir / "UnicodeData.txt"
         if not path.exists():
             raise FileNotFoundError(f"UnicodeData.txt not found in {self.data_dir}")
+
+        pending_range = None  # (first_codepoint, label, fields)
 
         with open(path, 'r', encoding='utf-8') as f:
             for line in f:
@@ -114,80 +199,32 @@ class UCDParser:
                     continue
 
                 codepoint = int(fields[0], 16)
-                name = fields[1] or ""
-                category = fields[2]
-                combining_class = int(fields[3])
-                bidi_class = fields[4]
-                decomposition_str = fields[5]
+                raw_name = fields[1] or ""
 
-                # Parse numeric value
-                numeric_value = None
-                numeric_type = ""
-                if fields[6]:  # Decimal Digit Value
-                    numeric_type = "Decimal"
-                    numeric_value = (int(fields[6]), 1)
-                elif fields[7]:  # Digit Value
-                    numeric_type = "Digit"
-                    numeric_value = (int(fields[7]), 1)
-                elif fields[8]:  # Numeric Value
-                    numeric_type = "Numeric"
-                    try:
-                        parts = fields[8].split('/')
-                        if len(parts) == 2:
-                            numeric_value = (int(parts[0]), int(parts[1]))
-                        else:
-                            numeric_value = (int(parts[0]), 1)
-                    except:
-                        pass
+                range_match = re.match(r'^<(.+), (First|Last)>$', raw_name)
+                if range_match:
+                    label, boundary = range_match.groups()
+                    if boundary == "First":
+                        pending_range = (codepoint, label, fields)
+                        continue
+                    # boundary == "Last"
+                    if pending_range is None or pending_range[1] != label:
+                        pending_range = None
+                        continue
+                    first_cp, _, first_fields = pending_range
+                    pending_range = None
+                    if label.startswith(self._EXPANDABLE_RANGE_PREFIXES):
+                        for cp in range(first_cp, codepoint + 1):
+                            try:
+                                name = unicodedata.name(chr(cp))
+                            except ValueError:
+                                continue
+                            self.characters[cp] = self._build_character(cp, name, first_fields)
+                    # Non-expandable ranges (surrogates, private use): no
+                    # entries, intentionally -- see _EXPANDABLE_RANGE_PREFIXES.
+                    continue
 
-                # Parse decomposition
-                decomposition = ("", [])
-                if decomposition_str:
-                    parts = decomposition_str.split()
-                    decomp_type = ""
-                    decomp_chars = []
-                    if parts[0].startswith('<'):
-                        decomp_type = parts[0][1:-1]
-                        decomp_chars = [int(p, 16) for p in parts[1:]]
-                    else:
-                        decomp_type = ""
-                        decomp_chars = [int(p, 16) for p in parts]
-                    decomposition = (decomp_type, decomp_chars)
-
-                # Case mappings
-                uppercase = None
-                lowercase = None
-                titlecase = None
-                if fields[12]:
-                    uppercase = int(fields[12], 16)
-                if fields[13]:
-                    lowercase = int(fields[13], 16)
-                if fields[14]:
-                    titlecase = int(fields[14], 16)
-
-                self.characters[codepoint] = CharacterData(
-                    codepoint=codepoint,
-                    name=name,
-                    aliases=[],
-                    category=category,
-                    combining_class=combining_class,
-                    bidi_class=bidi_class,
-                    bidi_mirrored=fields[9] == "Y",
-                    bidi_mirror_char=None,
-                    decomposition=decomposition,
-                    numeric_value=numeric_value,
-                    numeric_type=numeric_type,
-                    uppercase_mapping=uppercase,
-                    lowercase_mapping=lowercase,
-                    titlecase_mapping=titlecase,
-                    block="",
-                    script="",
-                    script_extensions=set(),
-                    age=None,
-                    east_asian_width="N",
-                    line_break="XX",
-                    props=set(),
-                )
+                self.characters[codepoint] = self._build_character(codepoint, raw_name, fields)
 
     def _parse_blocks(self):
         """Parse Blocks.txt for block assignments."""
