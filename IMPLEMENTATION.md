@@ -9,17 +9,17 @@ This project builds a complete custom macOS Dictionary from the Unicode Characte
 1. **Unicode Data Parser** (`build/ucd_parse.py`)
    - Reads 12+ UCD text files from Unicode.org
    - Parses character properties: name, category, combining class, bidi, decomposition, case mappings, numeric values, properties, etc.
-   - Handles ~160,628 assigned Unicode characters, including algorithmically-named
+   - Handles ~172,870 assigned Unicode characters, including algorithmically-named
      Hangul syllable, CJK ideograph, and Tangut ideograph ranges expanded from
      UnicodeData.txt's `<..., First>`/`<..., Last>` range markers
 
 2. **Dictionary XML Generator** (`build/gen_dict.py`)
    - Generates Apple Dictionary XML (d:dictionary format)
-   - Creates 160,628 total d:entry elements, one per assigned character
+   - Creates 172,870 total d:entry elements, one per assigned character
    - Indexes per character: literal char, U+XXXX, XXXX, full name, lowercase name,
      individual name words (3+ chars), aliases
    - HTML content with light/dark mode CSS
-   - Output: 232 MB XML
+   - Output: 249 MB XML
 
 3. **Bundle Creator** (`build/bundle_dict.py`)
    - Fallback bundle creation without Apple's Dictionary Development Kit
@@ -43,10 +43,10 @@ This project builds a complete custom macOS Dictionary from the Unicode Characte
 
 | Metric | Value |
 |--------|-------|
-| Characters indexed | 160,628 |
-| Total d:entry elements | 160,628 |
-| XML source size | 232 MB |
-| Installed bundle size | 192 MB (Kit-compiled, uncompressed) |
+| Characters indexed | 172,870 |
+| Total d:entry elements | 172,870 |
+| XML source size | 249 MB |
+| Installed bundle size | 206 MB (Kit-compiled, uncompressed) |
 | Supported Unicode version | 18.0 |
 | Index formats | Character, U+XXXX, XXXX, name, aliases |
 
@@ -142,7 +142,7 @@ Dictionary.app ← Look Up (Ctrl+Cmd+D)
 - Unicode data downloaded from Unicode.org
 - Python generator creates valid, well-formed XML
 - Dictionary bundle structure created with proper Info.plist
-- All 160,628 characters indexed and ready
+- All 172,870 characters indexed and ready
 - CSS styling for light/dark modes
 - Test suite validates XML and structure
 
@@ -279,7 +279,7 @@ This balances information density with pop-over readability.
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Characters indexed | 40,000+ | ✓ 160,628 |
+| Characters indexed | 40,000+ | ✓ 172,870 |
 | XML validation | Pass xmllint | ✓ Pass |
 | Bundle structure | Correct | ✓ Correct |
 | Dictionary accuracy | Match UnicodeData.txt | ✓ Validated |

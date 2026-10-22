@@ -5,7 +5,7 @@
 **Project:** Unicode Character Database → macOS Look Up Dictionary  
 **Status:** Built with the real Dictionary Development Kit, installed, and working  
 **Key Files:**  
-- `build/gen_dict.py` – Main XML generator (232 MB output, 160,628 entries)
+- `build/gen_dict.py` – Main XML generator (249 MB output, 172,870 entries)
 - `build/ucd_parse.py` – UCD file parser
 - `dist/UnicodeDictionary.xml` – Generated dictionary XML
 - `src/Info.plist` – Dictionary metadata
@@ -17,14 +17,14 @@ The project converts text-based Unicode data into an Apple Dictionary:
 
 1. **Data fetch** (`make data`) – curl downloads UCD from Unicode.org
 2. **Parse** (`ucd_parse.py`) – Read 12+ text files, build character property objects
-3. **Generate** (`gen_dict.py`) – Create Apple Dictionary XML with 160,628 entries
+3. **Generate** (`gen_dict.py`) – Create Apple Dictionary XML with 172,870 entries
 4. **Bundle** (`bundle_dict.py`) – Create `.dictionary` structure (fallback without Kit)
 5. **Compile** (Kit's `build_dict.sh`) – Generate binary Body.data and KeyText.index
 
 ## Implementation Checklist
 
 - [x] Download UCD files from Unicode.org
-- [x] Parse UnicodeData.txt (160,628 assigned characters, Unicode 18.0)
+- [x] Parse UnicodeData.txt (172,870 assigned characters, Unicode 18.0)
 - [x] Parse Blocks.txt, Scripts.txt, DerivedAge.txt, etc. (12 files)
 - [x] Generate Apple Dictionary XML with proper namespaces
 - [x] Create d:entry elements with d:index for lookup
@@ -64,29 +64,36 @@ The project converts text-based Unicode data into an Apple Dictionary:
    (intentional — they have no inherent name). Still open: `漢` (U+6F22) resolves via
    `DCSCopyTextDefinition` to the wrong, compatibility-duplicate codepoint (U+FA47) —
    a glyph-collision bug, unrelated to the range-expansion fix.
-6. **New in Unicode 18.0: Jurchen Character (U+18E00-U+19191, 914 chars) and Seal
-   Character (U+3D000-U+3FC3F, 11,328 chars -- the "Small Seal" script) are NOT
-   expanded**, unlike the ranges fixed in #5. Confirmed cause (2026-10-22): Python
-   3.15's `unicodedata` module reports `unidata_version == "17.0.0"` -- it doesn't
-   know these Unicode-18.0-only code points at all, so `unicodedata.name()` raises
-   `ValueError` for every one of them and `_parse_unicode_data()`'s existing
-   `except ValueError: continue` silently skips them (same code path as #5, just a
-   version gap rather than an unimplemented algorithm). Confirmed the existing
-   `_EXPANDABLE_RANGE_PREFIXES` prefix-match would already catch "Seal Character"
-   and "Jurchen Character" labels if asked to -- prefix-matching isn't the blocker.
-   Also confirmed the fix can't just reuse the "CJK Ideograph" pattern blindly: the
-   algorithmic name is NOT a literal uppercase of the UnicodeData.txt bracket label
-   (e.g. the label "CJK Ideograph" actually derives the name
-   "CJK UNIFIED IDEOGRAPH-XXXX", a different string, while "Tangut Ideograph"
-   derives to itself unchanged) -- the real per-range name stem is defined by
-   Unicode's Name Derivation Rule (UAX #44 Section 4.8 / NR1), which has not yet
-   been checked for what stem Jurchen/Seal actually derive to. Do not guess the
-   name stem; a wrong fabricated name is worse than leaving the entry unexpanded.
-   Options once the real stem is confirmed: (a) wait for a Python release whose
-   bundled `unicodedata` covers Unicode 18.0, or (b) hardcode the two new stems in
-   `ucd_parse.py` directly (bypassing `unicodedata.name()` for just these ranges),
-   which doesn't need to wait on Python and mirrors how Hangul Syllable Name was
-   originally going to be implemented before switching to the stdlib.
+6. ~~New in Unicode 18.0: Jurchen Character and Seal Character ranges not expanded~~
+   – **Fixed** (2026-10-22): Python 3.15's `unicodedata` module reports
+   `unidata_version == "17.0.0"`, so it can't name Unicode-18.0-only code points
+   and `unicodedata.name()` raised `ValueError` for all of them, silently skipped
+   by `_parse_unicode_data()`'s existing exception handling. Rather than wait on a
+   future Python release, `ucd_parse.py` now hardcodes the two stems directly
+   (`_MANUAL_NAME_STEMS`), bypassing `unicodedata.name()` for just these ranges.
+   The stems were verified against the Unicode 18.0 Core Specification, Chapter 4,
+   Table 4-8 "Name Derivation Rule Prefix Strings"
+   (https://www.unicode.org/versions/Unicode18.0.0/core-spec/chapter-4/, fetched
+   and grepped as raw HTML, not taken from an AI-summarized fetch, after that
+   summarized version turned out to omit a real nuance -- see below) and
+   cross-checked that our own `UnicodeData.txt` has zero individual override
+   lines inside either range, so the derivation is uniform with no exceptions to
+   reconcile at the parsing layer:
+   - `18E00..19191` (914 chars) → `JURCHEN CHARACTER-XXXX`
+   - `3D000..3FC3F` (11,328 chars, the "Small Seal" script) → `SMALL SEAL CHARACTER-XXXX`
+
+   Note for future reference: `NamesList.txt` separately documents a "Jurchen
+   Radicals" sub-range (191A0-191DF) with individually-styled labels like
+   "JURCHEN RADICAL-01" -- that's NamesList.txt's own chart-annotation
+   convention for producing the human-readable code charts, not a competing
+   value in `UnicodeData.txt` (the normative Name-property source this parser
+   actually reads), which has no individual lines in that span at all. Entries
+   in this dictionary correctly show the uniform `JURCHEN CHARACTER-XXXX` name
+   per the normative Name property, not the chart annotation.
+
+   172,870 total entries now (up from 160,628), exactly 914 + 11,328 = 12,242
+   more, confirming the fix covers precisely the two ranges intended and nothing
+   else shifted.
 
 ### Known Apple/macOS Dictionary.app bug (confirmed, not a bug in this project)
 **Symptom:** with only ONE dictionary enabled in Dictionary.app → Settings → Dictionaries,
@@ -269,8 +276,8 @@ make test
 - **Dictionary generation:** several seconds for 160k+ entries (XML writing is I/O bound);
   grew substantially once Hangul/CJK/Tangut range expansion and word-level indexing
   were added -- the "~1.5 seconds for 40k+ entries" figure predates both and is stale
-- **XML source size:** 232 MB
-- **Installed bundle size:** 192 MB (Kit-compiled; not gzip-compressed like the
+- **XML source size:** 249 MB
+- **Installed bundle size:** 206 MB (Kit-compiled; not gzip-compressed like the
   no-Kit fallback bundle_dict.py path, so the old "2.2 MB compressed" figure doesn't
   apply to a real Kit build)
 
@@ -366,7 +373,7 @@ grep -A 20 'id="U_0041' dist/UnicodeDictionary.xml
   160k+ characters, and word-level indexing adds a variable number of indexes per
   entry on top of the original fixed ~5
 - **Space:** O(characters) for generated entry strings before write
-- **I/O:** 232 MB XML write to disk
+- **I/O:** 249 MB XML write to disk
 
 ### Potential bottlenecks
 1. String concatenation in generation (mitigated by list/join)

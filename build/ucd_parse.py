@@ -104,7 +104,32 @@ class UCDParser:
     # listed here (surrogates, private-use planes) have no inherent name and
     # are intentionally left unexpanded -- one entry per code point there
     # would be meaningless and would bloat the dictionary by ~1M entries.
-    _EXPANDABLE_RANGE_PREFIXES = ("CJK Ideograph", "Hangul Syllable", "Tangut Ideograph")
+    _EXPANDABLE_RANGE_PREFIXES = (
+        "CJK Ideograph", "Hangul Syllable", "Tangut Ideograph",
+        "Jurchen Character", "Seal Character",
+    )
+
+    # Name-derivation stems for ranges Python's bundled `unicodedata` can't name
+    # yet (confirmed 2026-10-22: unicodedata.unidata_version == "17.0.0" on
+    # Python 3.15 -- these are new in Unicode 18.0, so unicodedata.name() raises
+    # ValueError for every code point in them and they'd silently be skipped,
+    # same failure mode this whole range-expansion feature exists to fix).
+    # Verified directly against the Unicode 18.0 Core Specification, Chapter 4,
+    # Table 4-8 "Name Derivation Rule Prefix Strings"
+    # (https://www.unicode.org/versions/Unicode18.0.0/core-spec/chapter-4/,
+    # fetched and grepped as raw HTML, not AI-summarized) and cross-checked that
+    # our own UnicodeData.txt has zero individual override lines inside either
+    # range, so the derivation is uniform across the whole span:
+    #   18E00..19191  NR2  "JURCHEN CHARACTER-"
+    #   3D000..3FC3F  NR2  "SMALL SEAL CHARACTER-"
+    # (NamesList.txt separately documents a "Jurchen Radicals" sub-range with
+    # labels like "JURCHEN RADICAL-01" -- that's NamesList.txt's own chart
+    # annotation convention, not a competing value in UnicodeData.txt, the file
+    # this parser actually reads, so there's nothing to reconcile here.)
+    _MANUAL_NAME_STEMS = {
+        "Jurchen Character": "JURCHEN CHARACTER",
+        "Seal Character": "SMALL SEAL CHARACTER",
+    }
 
     def _build_character(self, codepoint: int, name: str, fields: List[str]) -> CharacterData:
         """Build a CharacterData from a parsed UnicodeData.txt field list."""
@@ -214,11 +239,15 @@ class UCDParser:
                     first_cp, _, first_fields = pending_range
                     pending_range = None
                     if label.startswith(self._EXPANDABLE_RANGE_PREFIXES):
+                        manual_stem = self._MANUAL_NAME_STEMS.get(label)
                         for cp in range(first_cp, codepoint + 1):
-                            try:
-                                name = unicodedata.name(chr(cp))
-                            except ValueError:
-                                continue
+                            if manual_stem is not None:
+                                name = f"{manual_stem}-{cp:04X}"
+                            else:
+                                try:
+                                    name = unicodedata.name(chr(cp))
+                                except ValueError:
+                                    continue
                             self.characters[cp] = self._build_character(cp, name, first_fields)
                     # Non-expandable ranges (surrogates, private use): no
                     # entries, intentionally -- see _EXPANDABLE_RANGE_PREFIXES.
