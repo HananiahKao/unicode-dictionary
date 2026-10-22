@@ -42,7 +42,13 @@ body {
    plane blocks (observed: the same entry rendering as blank tofu boxes on one
    paint and correctly on the next), even when the system has a font that
    covers the glyph just fine. Naming the font directly makes resolution
-   deterministic. */
+   deterministic. "LastResort" is Apple's own build of Unicode's Last Resort
+   font (ships at /System/Library/Fonts/LastResort.otf on every Mac; CSS name
+   confirmed via the font's own PostScript name record, not its private
+   ".LastResort" UI name) -- for any code point none of the fonts above cover,
+   it draws a labeled block/range glyph instead of a blank box, so it goes
+   last, right before the generic sans-serif catch-all.
+   https://github.com/unicode-org/last-resort-font */
 .glyph {
     font-size: 72px;
     text-align: center;
@@ -50,7 +56,7 @@ body {
     margin: 10px 0 15px;
     word-break: break-all;
     font-family: "Apple Color Emoji", "PingFang SC", "PingFang TC", "Hiragino Sans",
-        "Apple SD Gothic Neo", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+        "Apple SD Gothic Neo", "Segoe UI Emoji", "Segoe UI Symbol", "LastResort", sans-serif;
 }
 
 h1 {
