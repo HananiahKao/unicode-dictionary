@@ -78,14 +78,16 @@ dict: $(XML_SOURCE) $(CSS_SOURCE) $(INFO_PLIST)
 		echo "Building with official Kit..."; \
 		"$$HOME/Dictionary Development Kit/bin/build_dict.sh" "$(PROJECT_NAME)" "$(XML_SOURCE)" "$(CSS_SOURCE)" "$(INFO_PLIST)"; \
 		mkdir -p dist; \
-		[ -d "$(PROJECT_NAME).dictionary" ] && mv "$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || true; \
+		rm -rf "$(DICT_BUNDLE_PATH)"; \
+		[ -d "objects/$(PROJECT_NAME).dictionary" ] && mv "objects/$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || echo "⚠ Kit did not produce objects/$(PROJECT_NAME).dictionary -- dist bundle NOT updated"; \
 		echo "✓ Dictionary bundle built with official Kit"; \
 	elif [ -f "/usr/local/Dictionary Development Kit/bin/build_dict.sh" ]; then \
 		echo "✓ Found Dictionary Development Kit at /usr/local"; \
 		echo "Building with official Kit..."; \
 		"/usr/local/Dictionary Development Kit/bin/build_dict.sh" "$(PROJECT_NAME)" "$(XML_SOURCE)" "$(CSS_SOURCE)" "$(INFO_PLIST)"; \
 		mkdir -p dist; \
-		[ -d "$(PROJECT_NAME).dictionary" ] && mv "$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || true; \
+		rm -rf "$(DICT_BUNDLE_PATH)"; \
+		[ -d "objects/$(PROJECT_NAME).dictionary" ] && mv "objects/$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || echo "⚠ Kit did not produce objects/$(PROJECT_NAME).dictionary -- dist bundle NOT updated"; \
 		echo "✓ Dictionary bundle built with official Kit"; \
 	elif [ -f "/Volumes/Additional Tools/Utilities/Dictionary Development Kit/bin/build_dict.sh" ]; then \
 		echo "⚠ Found Kit on read-only mounted volume (copy to ~/Dictionary Development Kit first)"; \
@@ -96,7 +98,8 @@ dict: $(XML_SOURCE) $(CSS_SOURCE) $(INFO_PLIST)
 		echo "  Installing from mounted volume..."; \
 		"$$HOME/Dictionary Development Kit/bin/build_dict.sh" "$(PROJECT_NAME)" "$(XML_SOURCE)" "$(CSS_SOURCE)" "$(INFO_PLIST)"; \
 		mkdir -p dist; \
-		[ -d "$(PROJECT_NAME).dictionary" ] && mv "$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || true; \
+		rm -rf "$(DICT_BUNDLE_PATH)"; \
+		[ -d "objects/$(PROJECT_NAME).dictionary" ] && mv "objects/$(PROJECT_NAME).dictionary" "$(DICT_BUNDLE_PATH)" || echo "⚠ Kit did not produce objects/$(PROJECT_NAME).dictionary -- dist bundle NOT updated"; \
 		echo "✓ Dictionary bundle built with official Kit"; \
 	else \
 		echo "Dictionary Development Kit not found."; \
