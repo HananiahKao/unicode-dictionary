@@ -431,8 +431,29 @@ class UCDParser:
                             props=set(),
                         )
 
-                    # Prefer "correction" aliases; include all
+                    # Prefer "correction" aliases, which replace a known-wrong
+                    # Name outright. Also prefer "control"/"figment" aliases
+                    # when the Name property is the literal "<control>"
+                    # placeholder UnicodeData.txt uses for C0/C1 control codes,
+                    # which have no real Name at all (not an omission on our
+                    # part -- it's how the Unicode Standard itself treats them;
+                    # NameAliases.txt's own header says these types exist
+                    # specifically "to help avoid name collisions" by standing
+                    # in for the missing Name). Checked (2026-10-22): all 65
+                    # UnicodeData.txt "<control>" entries have a usable alias --
+                    # 62 have at least one "control" type, the remaining 3
+                    # (never-standardized C1 codes) have only "figment". Where
+                    # a code point has more than one alias of the preferred
+                    # type (e.g. U+0009 has both "CHARACTER TABULATION" and
+                    # "HORIZONTAL TABULATION" as "control" aliases), the first
+                    # one in file order wins as the display name and later ones
+                    # still land in aliases -- NameAliases.txt doesn't document
+                    # an explicit tie-break rule for this, so file order (i.e.
+                    # Unicode's own publication order) is a reasonable default,
+                    # not a claimed normative rule.
                     if alias_type == "correction" and not self.characters[cp].name:
+                        self.characters[cp].name = alias
+                    elif alias_type in ("control", "figment") and self.characters[cp].name == "<control>":
                         self.characters[cp].name = alias
                     else:
                         self.characters[cp].aliases.append(alias)

@@ -101,6 +101,20 @@ The project converts text-based Unicode data into an Apple Dictionary:
    160,628 before this fix -- exactly 914 + 11,328 = 12,242 more, confirming
    the Python/unicodedata fix covers precisely the two ranges intended and nothing
    else shifted.
+7. ~~C0/C1 control codes show the literal "<control>" placeholder as their
+   title~~ – **Fixed** (2026-10-22): `UnicodeData.txt` genuinely has no Name
+   property for these 65 code points (not an omission -- "<control>" is
+   UnicodeData.txt's own placeholder convention for code points with no Name).
+   `NameAliases.txt` exists specifically to stand in for this: `_parse_name_
+   aliases()` now promotes the first "control"-type alias (or "figment" for
+   the 3 never-standardized C1 codes that only have that type) to `.name`,
+   same precedence pattern already used for "correction" type. Checked all 65:
+   zero still show "<control>" after the fix. Where a code point has more than
+   one same-type alias (e.g. U+0009 has both "CHARACTER TABULATION" and
+   "HORIZONTAL TABULATION"), the first in file order becomes the title and the
+   rest remain as searchable aliases -- NameAliases.txt doesn't document an
+   explicit tie-break rule for this, so file order is a pragmatic default, not
+   a claimed normative one.
 
 ### Known Apple/macOS Dictionary.app bug (confirmed, not a bug in this project)
 **Symptom:** with only ONE dictionary enabled in Dictionary.app → Settings → Dictionaries,
