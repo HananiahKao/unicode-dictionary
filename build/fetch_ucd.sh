@@ -4,7 +4,7 @@
 
 set -e
 
-UCD_VERSION="17.0.0"
+UCD_VERSION="18.0.0"
 UCD_URL="https://www.unicode.org/Public/${UCD_VERSION}/ucd"
 DATA_DIR="data"
 

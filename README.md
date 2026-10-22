@@ -4,7 +4,7 @@ A custom macOS Dictionary that brings the complete Unicode Character Database to
 
 ## Features
 
-- **Complete Unicode 17.0 database** – ~140,000 assigned characters
+- **Complete Unicode 18.0 database** – 160,628 assigned characters
 - **Instant lookup** – Use standard macOS Look Up/dictionary features
 - **Rich properties** – Character name, code point, category, script, block, combining class, bidi properties, decomposition, case mappings, numeric values, East Asian width, line break properties, and boolean properties (Alphabetic, Emoji, Math, White_Space, ID_Start, etc.)
 - **Smart indexing** – Look up by character, `U+XXXX` format, or full Unicode name
@@ -130,7 +130,7 @@ rm -rf ~/Library/Dictionaries/UnicodeDictionary.dictionary/
 
 ## Data Source
 
-All character data comes from the **Unicode Character Database (UCD) 17.0**:
+All character data comes from the **Unicode Character Database (UCD) 18.0**:
 
 - **UnicodeData.txt** – Character names, categories, case mappings, decompositions
 - **DerivedName.txt** – Algorithmic names for Hangul, CJK, Tangut, etc.
@@ -145,7 +145,7 @@ All character data comes from the **Unicode Character Database (UCD) 17.0**:
 - **BidiMirroring.txt** – Bidirectional text mirroring pairs
 - **Unihan.zip** – CJK Ideograph definitions (optional)
 
-Download: https://www.unicode.org/Public/17.0.0/ucd/
+Download: https://www.unicode.org/Public/18.0.0/ucd/
 
 **License:** Unicode License Agreement – https://www.unicode.org/license.html
 
@@ -225,5 +225,5 @@ This dictionary is not endorsed by Apple Inc. or The Unicode Consortium.
 
 ---
 
-**Version:** 1.0 (Unicode 17.0)  
+**Version:** 1.0 (Unicode 18.0)  
 **Last updated:** 2026-10-17
