@@ -11,7 +11,6 @@ DATA_DIR="data"
 mkdir -p "$DATA_DIR"
 
 # Files to download
-# Note: DerivedName.txt doesn't exist as a separate file; algorithmic names are in UnicodeData.txt range data
 FILES=(
     "UnicodeData.txt"
     "NameAliases.txt"
@@ -40,6 +39,19 @@ for file in "${FILES[@]}"; do
         curl -# -f -o "$dest" "$url" || { echo "✗ Failed to download $file"; exit 1; }
     fi
 done
+
+# DerivedName.txt: Unicode's own complete, pre-computed Name property for
+# every code point (individual names and algorithmic-range patterns alike),
+# published specifically "so that implementations do not have to properly
+# code that derivation" (its own header). Lives under ucd/extracted/, not at
+# the top level of ucd/ with the other files above.
+derived_name_file="${DATA_DIR}/DerivedName.txt"
+if [ -f "$derived_name_file" ]; then
+    echo "✓ DerivedName.txt (already exists)"
+else
+    echo "Downloading DerivedName.txt..."
+    curl -# -f -o "$derived_name_file" "${UCD_URL}/extracted/DerivedName.txt" || { echo "✗ Failed to download DerivedName.txt"; exit 1; }
+fi
 
 # Download emoji data (in subdirectory)
 mkdir -p "$DATA_DIR/emoji"

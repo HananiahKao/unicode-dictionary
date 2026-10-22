@@ -5,7 +5,7 @@
 **Project:** Unicode Character Database → macOS Look Up Dictionary  
 **Status:** Built with the real Dictionary Development Kit, installed, and working  
 **Key Files:**  
-- `build/gen_dict.py` – Main XML generator (249 MB output, 172,870 entries)
+- `build/gen_dict.py` – Main XML generator (249 MB output, 172,873 entries)
 - `build/ucd_parse.py` – UCD file parser
 - `dist/UnicodeDictionary.xml` – Generated dictionary XML
 - `src/Info.plist` – Dictionary metadata
@@ -17,14 +17,14 @@ The project converts text-based Unicode data into an Apple Dictionary:
 
 1. **Data fetch** (`make data`) – curl downloads UCD from Unicode.org
 2. **Parse** (`ucd_parse.py`) – Read 12+ text files, build character property objects
-3. **Generate** (`gen_dict.py`) – Create Apple Dictionary XML with 172,870 entries
+3. **Generate** (`gen_dict.py`) – Create Apple Dictionary XML with 172,873 entries
 4. **Bundle** (`bundle_dict.py`) – Create `.dictionary` structure (fallback without Kit)
 5. **Compile** (Kit's `build_dict.sh`) – Generate binary Body.data and KeyText.index
 
 ## Implementation Checklist
 
 - [x] Download UCD files from Unicode.org
-- [x] Parse UnicodeData.txt (172,870 assigned characters, Unicode 18.0)
+- [x] Parse UnicodeData.txt (172,873 assigned characters, Unicode 18.0)
 - [x] Parse Blocks.txt, Scripts.txt, DerivedAge.txt, etc. (12 files)
 - [x] Generate Apple Dictionary XML with proper namespaces
 - [x] Create d:entry elements with d:index for lookup
@@ -115,6 +115,35 @@ The project converts text-based Unicode data into an Apple Dictionary:
    rest remain as searchable aliases -- NameAliases.txt doesn't document an
    explicit tie-break rule for this, so file order is a pragmatic default, not
    a claimed normative one.
+8. ~~Algorithmic names depend on Python's `unicodedata` (version-lagging) and a
+   hand-maintained `_MANUAL_NAME_STEMS` table~~ – **Replaced** (2026-10-22):
+   switched to `ucd/extracted/DerivedName.txt`, Unicode's own complete,
+   pre-computed Name property for every code point -- individual names and
+   algorithmic-range patterns alike -- published specifically "so that
+   implementations do not have to properly code that derivation" (its own
+   header). `_parse_derived_name()` (previously a dead stub that incorrectly
+   claimed the file didn't exist -- it does, just under `ucd/extracted/`, not
+   `ucd/` directly) now parses it and is the sole authoritative source for
+   `.name`; `_parse_unicode_data()`'s range-expansion loop no longer computes
+   names at all, just placeholder-fills entries for category/bidi/etc. so
+   `_parse_derived_name()` has something to overwrite. `unicodedata` import
+   removed entirely -- no more Python-version dependency for naming, and a
+   future Unicode version's new algorithmic ranges need no code changes here,
+   just a fresh `DerivedName.txt` download.
+
+   Verified via full diff of every entry's name before/after the refactor
+   (172,870 entries before -> 172,873 after): zero renames -- everything
+   already in the dictionary (including the hand-verified Jurchen/Seal stems
+   and the control-character alias fix) matched DerivedName.txt exactly, so
+   none of that earlier manual work was wrong. Found exactly 3 new entries
+   (18D1F, 18D20 in Tangut Ideograph Supplement; 2B81E in CJK Ideograph
+   Extension D) -- all three are code points Unicode 18.0 added to the *tail*
+   of ranges that already existed in 17.0, silently dropped by the old
+   `unicodedata.name()` + `except ValueError: continue` path because it only
+   failed at the newly-extended boundary, not across the whole range, making
+   it easy to miss without this kind of exhaustive diff. This is exactly the
+   class of gap this refactor eliminates project-wide, not just for Jurchen
+   and Seal specifically.
 
 ### Known Apple/macOS Dictionary.app bug (confirmed, not a bug in this project)
 **Symptom:** with only ONE dictionary enabled in Dictionary.app → Settings → Dictionaries,

@@ -4,7 +4,7 @@ A custom macOS Dictionary that brings the complete Unicode Character Database to
 
 ## Features
 
-- **Complete Unicode 18.0 database** – 172,870 assigned characters
+- **Complete Unicode 18.0 database** – 172,873 assigned characters
 - **Instant lookup** – Use standard macOS Look Up/dictionary features
 - **Rich properties** – Character name, code point, category, script, block, combining class, bidi properties, decomposition, case mappings, numeric values, East Asian width, line break properties, and boolean properties (Alphabetic, Emoji, Math, White_Space, ID_Start, etc.)
 - **Smart indexing** – Look up by character, `U+XXXX` format, or full Unicode name

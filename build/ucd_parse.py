@@ -7,7 +7,6 @@ Treat UCD data files as untrusted; run with python3 -I.
 
 import re
 import os
-import unicodedata
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple, Optional
@@ -61,6 +60,9 @@ class UCDParser:
         print("Parsing UnicodeData.txt...")
         self._parse_unicode_data()
 
+        print("Parsing DerivedName.txt...")
+        self._parse_derived_name()
+
         print("Parsing Blocks.txt...")
         self._parse_blocks()
 
@@ -69,8 +71,6 @@ class UCDParser:
 
         print("Parsing ScriptExtensions.txt...")
         self._parse_script_extensions()
-
-        # DerivedName.txt doesn't exist; algorithmic names are in UnicodeData.txt
 
         print("Parsing NameAliases.txt...")
         self._parse_name_aliases()
@@ -99,50 +99,36 @@ class UCDParser:
         return self.characters
 
     # <..., First>/<..., Last> range labels whose code points have real,
-    # individually-meaningful algorithmic names (CJK ideographs, Hangul
-    # syllables, Tangut) and should get one entry per code point. Ranges not
-    # listed here (surrogates, private-use planes) have no inherent name and
-    # are intentionally left unexpanded -- one entry per code point there
-    # would be meaningless and would bloat the dictionary by ~1M entries.
+    # individually-meaningful names and should get one entry per code point.
+    # Ranges not listed here (surrogates, private-use planes) have no inherent
+    # name and are intentionally left unexpanded -- one entry per code point
+    # there would be meaningless and would bloat the dictionary by ~1M entries.
+    #
+    # Naming itself is no longer this method's problem (2026-10-22 rewrite):
+    # entries created in the expansion loop below get an empty placeholder
+    # name, and _parse_derived_name() -- called right after this method, see
+    # parse_all() -- fills it in authoritatively from DerivedName.txt,
+    # Unicode's own complete, pre-computed Name property for every code point
+    # (individual names and algorithmic-range patterns alike), published
+    # specifically "so that implementations do not have to properly code that
+    # derivation" (its own header). This replaces an earlier approach that
+    # called Python's bundled `unicodedata.name()` and hand-maintained a
+    # _MANUAL_NAME_STEMS table for ranges it didn't know yet (confirmed
+    # 2026-10-22: unicodedata.unidata_version stayed at "17.0.0" well after
+    # Unicode 18.0 shipped, so it couldn't name Jurchen Character or Seal
+    # Character at all). Using DerivedName.txt instead means a future Unicode
+    # version's new algorithmically-named ranges need no code changes here --
+    # just a fresh DerivedName.txt download -- and it's also unaffected by the
+    # Jurchen Radicals situation (U+191A0-U+191D2, a separate adjacent block
+    # with its own real individual names, not nested inside this range at all
+    # despite an earlier version of this comment claiming otherwise -- see
+    # commit 7e46c31): DerivedName.txt already reconciles that correctly since
+    # it's Unicode's own final computed output, not a raw range pattern we'd
+    # have to reconcile against exceptions ourselves.
     _EXPANDABLE_RANGE_PREFIXES = (
         "CJK Ideograph", "Hangul Syllable", "Tangut Ideograph",
         "Jurchen Character", "Seal Character",
     )
-
-    # Name-derivation stems for ranges Python's bundled `unicodedata` can't name
-    # yet (confirmed 2026-10-22: unicodedata.unidata_version == "17.0.0" on
-    # Python 3.15 -- these are new in Unicode 18.0, so unicodedata.name() raises
-    # ValueError for every code point in them and they'd silently be skipped,
-    # same failure mode this whole range-expansion feature exists to fix).
-    # Verified directly against the Unicode 18.0 Core Specification, Chapter 4,
-    # Table 4-8 "Name Derivation Rule Prefix Strings"
-    # (https://www.unicode.org/versions/Unicode18.0.0/core-spec/chapter-4/,
-    # fetched and grepped as raw HTML, not AI-summarized) and cross-checked that
-    # our own UnicodeData.txt has zero individual override lines inside either
-    # range, so the derivation is uniform across the whole span:
-    #   18E00..19191  NR2  "JURCHEN CHARACTER-"
-    #   3D000..3FC3F  NR2  "SMALL SEAL CHARACTER-"
-    # (NamesList.txt separately documents a "Jurchen Radicals" sub-range with
-    # labels like "JURCHEN RADICAL-01" -- that's NamesList.txt's own chart
-    # annotation convention, not a competing value in UnicodeData.txt, the file
-    # this parser actually reads, so there's nothing to reconcile here.)
-    # Applies only to the bulk of each range: U+191A0-U+191D2 (51 code points,
-    # "Jurchen Radicals") has its own individual UnicodeData.txt lines with
-    # real names ("JURCHEN RADICAL-01" etc.), positioned right after the
-    # Jurchen Character range's <..., Last> marker rather than between
-    # <..., First> and <..., Last>. Those lines are picked up correctly by the
-    # plain single-line path below with no special-casing needed here: this
-    # loop runs when the Last marker line is reached, writes the generic
-    # derived name for the whole range including 191A0-191D2, and then the
-    # individual lines that follow in the file simply overwrite those 51
-    # entries with their real names before parsing moves on (confirmed via a
-    # direct trace, 2026-10-22, after an earlier version of this comment
-    # wrongly claimed no such individual lines existed anywhere in the range --
-    # that check only looked between First and Last, not after Last).
-    _MANUAL_NAME_STEMS = {
-        "Jurchen Character": "JURCHEN CHARACTER",
-        "Seal Character": "SMALL SEAL CHARACTER",
-    }
 
     def _build_character(self, codepoint: int, name: str, fields: List[str]) -> CharacterData:
         """Build a CharacterData from a parsed UnicodeData.txt field list."""
@@ -213,12 +199,12 @@ class UCDParser:
         """Parse UnicodeData.txt - main character database.
 
         Most lines are one code point each. Large algorithmically-named
-        blocks (CJK ideographs, Hangul syllables, Tangut) instead appear as
-        a <Label, First>/<Label, Last> pair bracketing the whole range; each
-        code point in between must be expanded individually, with its name
-        computed the same way Python's own `unicodedata` module computes it
-        (same algorithm the Unicode Standard specifies), since no per-code-
-        point line for it exists in the file at all.
+        blocks (CJK ideographs, Hangul syllables, Tangut, ...) instead appear
+        as a <Label, First>/<Label, Last> pair bracketing the whole range;
+        each code point in between must be expanded individually to get its
+        other properties (category, combining class, bidi class, ...), which
+        are uniform across the range and taken from the <Label, First> line.
+        Names are deliberately NOT computed here -- see _parse_derived_name().
         """
         path = self.data_dir / "UnicodeData.txt"
         if not path.exists():
@@ -252,16 +238,10 @@ class UCDParser:
                     first_cp, _, first_fields = pending_range
                     pending_range = None
                     if label.startswith(self._EXPANDABLE_RANGE_PREFIXES):
-                        manual_stem = self._MANUAL_NAME_STEMS.get(label)
                         for cp in range(first_cp, codepoint + 1):
-                            if manual_stem is not None:
-                                name = f"{manual_stem}-{cp:04X}"
-                            else:
-                                try:
-                                    name = unicodedata.name(chr(cp))
-                                except ValueError:
-                                    continue
-                            self.characters[cp] = self._build_character(cp, name, first_fields)
+                            # Placeholder name -- _parse_derived_name() fills
+                            # in the real one right after this method returns.
+                            self.characters[cp] = self._build_character(cp, "", first_fields)
                     # Non-expandable ranges (surrogates, private use): no
                     # entries, intentionally -- see _EXPANDABLE_RANGE_PREFIXES.
                     continue
@@ -339,12 +319,28 @@ class UCDParser:
                             self.characters[cp].script_extensions = scripts
 
     def _parse_derived_name(self):
-        """Parse DerivedName.txt for algorithmic names (Hangul, CJK, etc.)."""
-        # DerivedName.txt doesn't exist as a separate file; skip this
-        return
+        """Parse DerivedName.txt -- Unicode's own complete, pre-computed Name
+        property for every code point, individual names and algorithmic-range
+        patterns alike. Authoritative source for CharacterData.name; see the
+        comment on _EXPANDABLE_RANGE_PREFIXES above for why this replaced
+        calling Python's `unicodedata.name()` and hand-maintaining name stems.
+
+        Format (from the file's own header): two fields separated by `;`.
+        Field 0 is a single code point or a START..END range. Field 1 is
+        either a literal name, or a pattern containing `*` as a placeholder
+        for the code point in 4-to-6-digit uppercase hex (e.g.
+        "CJK UNIFIED IDEOGRAPH-*" -> "CJK UNIFIED IDEOGRAPH-4E2D" for U+4E2D).
+
+        Unconditionally overwrites .name for every code point it covers --
+        it's authoritative, not a fallback -- and creates a minimal
+        CharacterData for any code point not already present (shouldn't
+        normally happen since DerivedName.txt's coverage is a subset of what
+        _parse_unicode_data() already produces, but data files can surprise
+        you, so don't assume).
+        """
         path = self.data_dir / "DerivedName.txt"
         if not path.exists():
-            return
+            raise FileNotFoundError(f"DerivedName.txt not found in {self.data_dir}")
 
         with open(path, 'r', encoding='utf-8') as f:
             for line in f:
@@ -352,40 +348,48 @@ class UCDParser:
                 if not line or line.startswith('#'):
                     continue
 
-                # Format: START..END ; NAME or SINGLE ; NAME
-                match = re.match(r'([0-9A-F]+)(?:\.\.([0-9A-F]+))?\s*;\s*(.+)', line)
-                if match:
-                    start = int(match.group(1), 16)
-                    end = int(match.group(2), 16) if match.group(2) else start
-                    name = match.group(3).strip()
+                field0, sep, field1 = line.partition(';')
+                if not sep:
+                    continue
+                field0 = field0.strip()
+                name_field = field1.strip()
 
-                    for cp in range(start, end + 1):
-                        if cp not in self.characters:
-                            self.characters[cp] = CharacterData(
-                                codepoint=cp,
-                                name=name,
-                                aliases=[],
-                                category="",
-                                combining_class=0,
-                                bidi_class="",
-                                bidi_mirrored=False,
-                                bidi_mirror_char=None,
-                                decomposition=("", []),
-                                numeric_value=None,
-                                numeric_type="",
-                                uppercase_mapping=None,
-                                lowercase_mapping=None,
-                                titlecase_mapping=None,
-                                block="",
-                                script="",
-                                script_extensions=set(),
-                                age=None,
-                                east_asian_width="N",
-                                line_break="XX",
-                                props=set(),
-                            )
-                        elif not self.characters[cp].name:
-                            self.characters[cp].name = name
+                if '..' in field0:
+                    start_str, end_str = field0.split('..', 1)
+                    start, end = int(start_str, 16), int(end_str, 16)
+                else:
+                    start = end = int(field0, 16)
+
+                is_pattern = '*' in name_field
+
+                for cp in range(start, end + 1):
+                    name = name_field.replace('*', f'{cp:04X}') if is_pattern else name_field
+                    if cp in self.characters:
+                        self.characters[cp].name = name
+                    else:
+                        self.characters[cp] = CharacterData(
+                            codepoint=cp,
+                            name=name,
+                            aliases=[],
+                            category="",
+                            combining_class=0,
+                            bidi_class="",
+                            bidi_mirrored=False,
+                            bidi_mirror_char=None,
+                            decomposition=("", []),
+                            numeric_value=None,
+                            numeric_type="",
+                            uppercase_mapping=None,
+                            lowercase_mapping=None,
+                            titlecase_mapping=None,
+                            block="",
+                            script="",
+                            script_extensions=set(),
+                            age=None,
+                            east_asian_width="N",
+                            line_break="XX",
+                            props=set(),
+                        )
 
     def _parse_name_aliases(self):
         """Parse NameAliases.txt for alternate names."""
