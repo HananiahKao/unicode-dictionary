@@ -126,6 +126,19 @@ class UCDParser:
     # labels like "JURCHEN RADICAL-01" -- that's NamesList.txt's own chart
     # annotation convention, not a competing value in UnicodeData.txt, the file
     # this parser actually reads, so there's nothing to reconcile here.)
+    # Applies only to the bulk of each range: U+191A0-U+191D2 (51 code points,
+    # "Jurchen Radicals") has its own individual UnicodeData.txt lines with
+    # real names ("JURCHEN RADICAL-01" etc.), positioned right after the
+    # Jurchen Character range's <..., Last> marker rather than between
+    # <..., First> and <..., Last>. Those lines are picked up correctly by the
+    # plain single-line path below with no special-casing needed here: this
+    # loop runs when the Last marker line is reached, writes the generic
+    # derived name for the whole range including 191A0-191D2, and then the
+    # individual lines that follow in the file simply overwrite those 51
+    # entries with their real names before parsing moves on (confirmed via a
+    # direct trace, 2026-10-22, after an earlier version of this comment
+    # wrongly claimed no such individual lines existed anywhere in the range --
+    # that check only looked between First and Last, not after Last).
     _MANUAL_NAME_STEMS = {
         "Jurchen Character": "JURCHEN CHARACTER",
         "Seal Character": "SMALL SEAL CHARACTER",

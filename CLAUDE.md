@@ -75,24 +75,31 @@ The project converts text-based Unicode data into an Apple Dictionary:
    Table 4-8 "Name Derivation Rule Prefix Strings"
    (https://www.unicode.org/versions/Unicode18.0.0/core-spec/chapter-4/, fetched
    and grepped as raw HTML, not taken from an AI-summarized fetch, after that
-   summarized version turned out to omit a real nuance -- see below) and
-   cross-checked that our own `UnicodeData.txt` has zero individual override
-   lines inside either range, so the derivation is uniform with no exceptions to
-   reconcile at the parsing layer:
+   summarized version turned out to omit a real nuance -- see below):
    - `18E00..19191` (914 chars) → `JURCHEN CHARACTER-XXXX`
    - `3D000..3FC3F` (11,328 chars, the "Small Seal" script) → `SMALL SEAL CHARACTER-XXXX`
 
-   Note for future reference: `NamesList.txt` separately documents a "Jurchen
-   Radicals" sub-range (191A0-191DF) with individually-styled labels like
-   "JURCHEN RADICAL-01" -- that's NamesList.txt's own chart-annotation
-   convention for producing the human-readable code charts, not a competing
-   value in `UnicodeData.txt` (the normative Name-property source this parser
-   actually reads), which has no individual lines in that span at all. Entries
-   in this dictionary correctly show the uniform `JURCHEN CHARACTER-XXXX` name
-   per the normative Name property, not the chart annotation.
+   Correction (2026-10-22, caught a factual error from the first version of this
+   note): U+191A0-U+191D2 ("Jurchen Radicals", 51 code points) are NOT inside
+   the Jurchen Character range and are NOT NamesList.txt chart-annotation-only
+   labels as previously claimed here -- 0x191A0 > 0x19191 (compare hex digit by
+   digit: the earlier claim mixed this up). They're a separate, adjacent block
+   immediately after it, with their own genuine individual UnicodeData.txt
+   lines (e.g. `191A0;JURCHEN RADICAL-01;Lo;...`), matching Chapter 4's own
+   stated convention that ideographic scripts other than Han and Tangut get
+   explicit per-character lines even where NR2-derivable. The existing,
+   unmodified single-line parsing path has always picked these up correctly
+   with their true official names -- confirmed by checking the dictionary XML
+   already committed in 22ba83f, before any radical-specific code existed at
+   all. A later attempt in this session to "fix" this with a hardcoded
+   `_JURCHEN_RADICAL_ALIASES` table was based on this same mistaken premise and
+   has been reverted; it changed no output (confirmed: regenerated XML is
+   byte-identical to what was already committed). Nothing was broken and
+   nothing needed fixing here.
 
-   172,870 total entries now (up from 160,628), exactly 914 + 11,328 = 12,242
-   more, confirming the fix covers precisely the two ranges intended and nothing
+   172,870 total entries (confirmed unchanged by the correction above), up from
+   160,628 before this fix -- exactly 914 + 11,328 = 12,242 more, confirming
+   the Python/unicodedata fix covers precisely the two ranges intended and nothing
    else shifted.
 
 ### Known Apple/macOS Dictionary.app bug (confirmed, not a bug in this project)
