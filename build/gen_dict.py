@@ -145,10 +145,14 @@ def generate_entry_html(char_data: CharacterData) -> str:
     glyph = char_to_display(cp)
 
     # Start building content
+    # .glyph MUST come after <h1>, not before it -- see "Look Up popup content
+    # collapse" in CLAUDE.md. With the large-font glyph div as the first child,
+    # Dictionary.app's Look Up popover silently fails to render everything
+    # after it (title, codepoint, table, aliases); the main window is unaffected.
     html_parts = [
         f'<div class="entry">',
-        f'  <div class="glyph" role="img" aria-label="{name}">{html.escape(glyph)}</div>',
         f'  <h1>{name}</h1>',
+        f'  <div class="glyph" role="img" aria-label="{name}">{html.escape(glyph)}</div>',
         f'  <div class="codepoint">U+{cp:04X}</div>',
     ]
 

@@ -188,6 +188,37 @@ Apple's bundled "Traditional Chinese - English") exhibit the same behavior, so t
 platform-wide limitation, not a blocker specific to this project. Do not re-investigate;
 document as a known limitation.
 
+**A third, distinct bug (confirmed 2026-10-23, fixed in this project's own markup):**
+in the Ctrl+Cmd+D Look Up popover specifically (reproduced in both the isolated single-
+dictionary view and the "All dictionaries" aggregate view), an entry whose first child
+element is `.glyph` (`font-size: 5.14em`, per `UnicodeDictionary.css`) renders a
+completely empty body below the dictionary's section header — title, codepoint table,
+case mappings, aliases, everything gone, with no error. The main Dictionary.app browsing
+window is unaffected; this is specific to the Look Up popover's content rendering.
+
+Root cause isolated by binary search on Apple's own unmodified sample dictionary
+(`project_templates/MyDictionary.xml`), not assumed: built a minimal entry with the exact
+production glyph markup (`<div class="glyph" role="img" aria-label="NULL">␀</div>`,
+first child) — reproduced the empty-popover symptom with zero other project markup
+present, ruling out every other hypothesis tested earlier in this investigation (tables,
+`d:priority`, multi-dictionary collisions, CSS bleed between co-displayed dictionaries,
+and dictionary scale were all tested and individually ruled out as the cause — see git
+history / session notes for those intermediate experiments). Moving the identical
+`.glyph` div to *after* `<h1>` in that same test entry fixed it immediately; moving it
+back before `<h1>` reproduced the failure again — repeatable both directions. Likely
+mechanism (not independently verified against WebKit/Dictionary Services source): the
+Look Up popover computes its initial content height from the first child before the
+oversized glyph font is applied, then clips/fails to lay out everything after it —
+consistent in spirit with the already-documented Apple reflow/scroll-view bug above,
+but a distinct trigger (element order, not post-load reflow) and, unlike that one, a
+mitigation exists on our side.
+
+**Fix applied:** `generate_entry_html()` in `gen_dict.py` now emits `<h1>` before
+`.glyph` (previously `.glyph` was first). Regenerated the full 172,873-entry dictionary
+and rebuilt/reinstalled with the Kit after this change. If this element order ever
+regresses (e.g. during a refactor of `generate_entry_html()`), this exact bug will
+return project-wide in the Look Up popover — keep `<h1>` first among visible children.
+
 ### Potential Improvements
 - [ ] **Unihan integration** – Add kDefinition, kTotalStrokes, etc. for CJK
 - [ ] **Multi-codepoint grapheme cluster search** (ZWJ sequences, flag pairs, skin-tone
@@ -451,5 +482,5 @@ Current version: Unicode 18.0 (September 2026)
 
 ---
 
-**Last Updated:** 2026-10-18  
+**Last Updated:** 2026-10-23  
 **Maintained By:** Unicode Dictionary Project Contributors
