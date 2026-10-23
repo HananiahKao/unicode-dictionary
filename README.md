@@ -169,7 +169,7 @@ The build process attempts to use Apple's **Dictionary Development Kit** to crea
 
 - **Multi-character clusters** (emoji ZWJ sequences, flag pairs, skin-tone modifiers, base + combining marks): selecting the composed glyph and invoking Look Up reports "no entries found" — there is no fallback to the base/first code point. Each component code point has its own entry, searchable individually by its name or U+code.
 - **Unihan data** (CJK extended properties): Optional download. Basic properties included.
-- **Font rendering**: If no installed font covers a character's actual glyph, the `.glyph` display falls back to Apple's "LastResort" system font, which draws a labeled block/range placeholder instead of a blank box. The code point and name are always shown regardless.
+- **Font rendering**: The CSS names no specific font anywhere (per Apple's Dictionary Development Kit guideline); `.glyph` and all other text rely entirely on whatever font Dictionary.app's WebKit view resolves by default, including its own system-level fallback for glyphs no installed font covers. The code point and name are always shown regardless.
 
 ### Single-Character Indexing
 
