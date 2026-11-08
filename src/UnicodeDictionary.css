@@ -77,6 +77,19 @@ h3 {
     display: inline-block;
 }
 
+/* UTF-16 surrogate pair, for typing via the Unicode Hex Input keyboard */
+.hex-input {
+    font-family: monospace;
+    font-size: 0.93em;
+    color: var(--color-accent);
+    margin-left: 0.57em;
+    margin-bottom: 0.86em;
+    padding: 0.29em 0.57em;
+    background: var(--color-code-bg);
+    border-radius: 0.29em;
+    display: inline-block;
+}
+
 /* Properties table */
 table.properties {
     width: 100%;

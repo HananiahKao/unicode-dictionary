@@ -136,6 +136,18 @@ def format_category(cat: str) -> str:
     return categories.get(cat, cat)
 
 
+def surrogate_pair_hex(cp: int) -> Optional[str]:
+    """For code points beyond the BMP, return their UTF-16 surrogate pair as
+    'XXXX XXXX', so entries can show/index the two 4-digit codes needed to
+    type them via macOS's Unicode Hex Input keyboard (which only accepts 4
+    hex digits at a time). Returns None for BMP code points (<= U+FFFF)."""
+    if cp <= 0xFFFF:
+        return None
+    high = 0xD800 + ((cp - 0x10000) >> 10)
+    low = 0xDC00 + ((cp - 0x10000) & 0x3FF)
+    return f"{high:04X} {low:04X}"
+
+
 def generate_entry_html(char_data: CharacterData) -> str:
     """Generate HTML content for a dictionary entry."""
     cp = char_data.codepoint
@@ -155,6 +167,10 @@ def generate_entry_html(char_data: CharacterData) -> str:
         f'  <div class="glyph" role="img" aria-label="{name}">{html.escape(glyph)}</div>',
         f'  <div class="codepoint">U+{cp:04X}</div>',
     ]
+
+    surrogates = surrogate_pair_hex(cp)
+    if surrogates:
+        html_parts.append(f'  <div class="hex-input">Hex Input: {surrogates}</div>')
 
     # Main properties table (shown by default)
     props_parts = [
@@ -276,6 +292,13 @@ def generate_entry_xml(char_data: CharacterData) -> str:
     # Index 3: XXXX format (without U+)
     hex_no_prefix = f"{cp:04X}"
     indexes.append(f'    <d:index d:value="{hex_no_prefix}" d:title="{name}"/>')
+
+    # Index 3b: UTF-16 surrogate pair as "XXXX XXXX", for code points beyond
+    # the BMP -- lets the Hex Input string shown in the entry body also be
+    # searched/typed directly.
+    surrogates = surrogate_pair_hex(cp)
+    if surrogates:
+        indexes.append(f'    <d:index d:value="{surrogates}" d:title="{name}"/>')
 
     # Index 4: Full name
     if char_data.name:
