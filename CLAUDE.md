@@ -7,9 +7,16 @@
 **Key Files:**  
 - `build/gen_dict.py` – Main XML generator (249 MB output, 172,873 entries)
 - `build/ucd_parse.py` – UCD file parser
-- `dist/UnicodeDictionary.xml` – Generated dictionary XML
+- `dist/UnicodeDictionary.xml` – Generated dictionary XML (not tracked in git — regenerate with `make xml`)
 - `src/Info.plist` – Dictionary metadata
 - `Makefile` – Build automation
+
+**Note:** `data/` (downloaded UCD source) and `dist/` (generated XML/dictionary output) are
+gitignored as of 2026-11-08 — they're large, fully reproducible from `make data`/`make xml`/
+`make dict`, and don't belong in version control. An earlier version of this doc said they
+were intentionally committed "for reference/reproducibility"; that was reversed once the
+repo size made it clear reproducibility is better served by the build scripts than by
+committing their output.
 
 ## Architecture Overview
 
